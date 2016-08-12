@@ -1,6 +1,6 @@
 {application, ssl,
    [{description, "Erlang/OTP SSL application"},
-    {vsn, "%VSN%"},
+    {vsn, "8.0.1-evan"},
     {modules, [
 	       %% TLS/SSL 
 	       tls_connection,
