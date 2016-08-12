@@ -70,6 +70,8 @@
 -define(TRUE, 0).
 -define(FALSE, 1).
 
+-define(VSN, "8.0.1-heroku").
+
 %% sslv3 is considered insecure due to lack of padding check (Poodle attack)
 %% Keep as interop with legacy software but do not support as default 
 -define(ALL_AVAILABLE_VERSIONS, ['tlsv1.2', 'tlsv1.1', tlsv1, sslv3]).
