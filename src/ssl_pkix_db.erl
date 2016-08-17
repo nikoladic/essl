@@ -83,12 +83,22 @@ remove(Dbs) ->
 %% <SerialNumber, Issuer>. Ref is used as it is specified  
 %% for each connection which certificates are trusted.
 %%--------------------------------------------------------------------
-lookup_trusted_cert(DbHandle, Ref, SerialNumber, Issuer) ->
+lookup_trusted_cert(DbHandle, Ref, SerialNumber, Issuer) when is_reference(Ref) ->
     case lookup({Ref, SerialNumber, Issuer}, DbHandle) of
 	undefined ->
 	    undefined;
 	[Certs] ->
 	    {ok, Certs}
+    end;
+lookup_trusted_cert(_DbHandle, {extracted,Certs}, SerialNumber, Issuer) ->
+    try
+	[throw({Cert,ErlCert})
+	 || {decoded, {Cert,ErlCert,CertSerial,CertIssuer}} <- Certs,
+	    CertSerial =:= SerialNumber, CertIssuer =:= Issuer],
+	undefined
+    catch
+	Found ->
+	    {ok, Found}
     end.
 
 lookup_cached_pem([_, _, PemChache | _], File) ->
