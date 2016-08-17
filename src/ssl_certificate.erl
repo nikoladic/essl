@@ -260,7 +260,7 @@ find_issuer(OtpCert, BinCert, CertDbHandle, CertsDbRef) ->
 	end;
        is_tuple(CertsDbRef), element(1,CertsDbRef) =:= extracted -> % cache bypass byproduct
 	{extracted, CertsData} = CertsDbRef,
-	DB = [{key, {Cert,ErlCert}} || {decoded, {Cert, ErlCert, _, _}} <- CertsData],
+	DB = [Entry || {decoded, Entry} <- CertsData],
 	try lists:foldl(IsIssuerFun, issuer_not_found, DB) of
 	    issuer_not_found ->
 		{error, issuer_not_found}

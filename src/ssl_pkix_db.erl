@@ -92,13 +92,13 @@ lookup_trusted_cert(DbHandle, Ref, SerialNumber, Issuer) when is_reference(Ref) 
     end;
 lookup_trusted_cert(_DbHandle, {extracted,Certs}, SerialNumber, Issuer) ->
     try
-	[throw({Cert,ErlCert})
-	 || {decoded, {Cert,ErlCert,CertSerial,CertIssuer}} <- Certs,
+	[throw(Cert)
+	 || {decoded, {{_Ref,CertSerial,CertIssuer}, Cert}} <- Certs,
 	    CertSerial =:= SerialNumber, CertIssuer =:= Issuer],
 	undefined
     catch
-	Found ->
-	    {ok, Found}
+	Cert ->
+	    {ok, Cert}
     end.
 
 lookup_cached_pem([_, _, PemChache | _], File) ->
@@ -272,8 +272,9 @@ add_certs_from_der(DerList, Ref, CertsDb) ->
     ok.
 
 certs_from_der(DerList) ->
+    Ref = make_ref(),
     [Decoded || Cert <- DerList,
-		Decoded <- [decode_certs(Cert)],
+		Decoded <- [decode_certs(Ref, Cert)],
 		Decoded =/= undefined].
 
 add_certs_from_pem(PemEntries, Ref, CertsDb) ->
@@ -283,20 +284,20 @@ add_certs_from_pem(PemEntries, Ref, CertsDb) ->
 
 add_certs(Cert, Ref, CertsDb) ->
     try
-	 {decoded, {Cert, ErlCert, SerialNumber, Issuer}} = decode_certs(Cert),
-	 insert({Ref, SerialNumber, Issuer}, {Cert,ErlCert}, CertsDb)
+	 {decoded, Key, Val} = decode_certs(Ref, Cert),
+	 insert(Key, Val, CertsDb)
     catch
 	error:_ ->
 	    ok
     end.
 
-decode_certs(Cert) ->
+decode_certs(Ref, Cert) ->
     try  ErlCert = public_key:pkix_decode_cert(Cert, otp),
 	 TBSCertificate = ErlCert#'OTPCertificate'.tbsCertificate,
 	 SerialNumber = TBSCertificate#'OTPTBSCertificate'.serialNumber,
 	 Issuer = public_key:pkix_normalize_name(
 		    TBSCertificate#'OTPTBSCertificate'.issuer),
-	 {decoded, {Cert, ErlCert, SerialNumber, Issuer}}
+	 {decoded, {{Ref, SerialNumber, Issuer}, {Cert, ErlCert}}}
     catch
 	error:_ ->
 	    Report = io_lib:format("SSL WARNING: Ignoring a CA cert as "

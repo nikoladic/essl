@@ -1178,8 +1178,8 @@ certificate_authorities_from_db(CertDbHandle, CertDbRef) when is_reference(CertD
 		      end,
     ssl_pkix_db:foldl(ConnectionCerts, [], CertDbHandle);
 certificate_authorities_from_db(_CertDbHandle, {extracted, CertDbData}) ->
-    %% Cache disabled, Ref contians data
-    lists:foldl(fun({decoded, {Cert,ErlCert,_,_}}, Acc) -> [{Cert,ErlCert} | Acc] end,
+    %% Cache disabled, Ref contains data
+    lists:foldl(fun({decoded, {_Key,Cert}}, Acc) -> [Cert | Acc] end,
 		[], CertDbData).
 
 
