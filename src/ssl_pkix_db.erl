@@ -284,7 +284,7 @@ add_certs_from_pem(PemEntries, Ref, CertsDb) ->
 
 add_certs(Cert, Ref, CertsDb) ->
     try
-	 {decoded, Key, Val} = decode_certs(Ref, Cert),
+	 {decoded, {Key, Val}} = decode_certs(Ref, Cert),
 	 insert(Key, Val, CertsDb)
     catch
 	error:_ ->
