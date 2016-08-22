@@ -138,7 +138,19 @@ add_trusted_certs(_Pid, File, [CertsDb, RefDb, PemChache | _] = Db) ->
     end.
 
 extract_trusted_certs({der, DerList}) ->
-    {ok, {extracted, certs_from_der(DerList)}}.
+    {ok, {extracted, certs_from_der(DerList)}};
+extract_trusted_certs(File) ->
+    case file:read_file(File) of
+        {ok, PemBin} ->
+            Content = public_key:pem_decode(PemBin),
+            DerList = [Cert || {'Certificate', Cert, not_encrypted} <- Content],
+            {ok, {extracted, certs_from_der(DerList)}};
+        Error ->
+            %% Have to simulate a failure happening in a server for
+            %% external handlers.
+            {error, {badmatch, Error}}
+    end.
+
 %%--------------------------------------------------------------------
 %%
 %% Description: Cache file as binary in DB
@@ -160,9 +172,15 @@ cache_pem_file(Ref, File, [_CertsDb, _RefDb, PemChache| _]) ->
 
 -spec decode_pem_file(binary()) -> {ok, term()}.
 decode_pem_file(File) ->
-    {ok, PemBin} = file:read_file(File),
-    Content = public_key:pem_decode(PemBin),
-    {ok, Content}.
+    case file:read_file(File) of
+        {ok, PemBin} ->
+            Content = public_key:pem_decode(PemBin),
+            {ok, Content};
+        Error ->
+            %% Have to simulate a failure happening in a server for
+            %% external handlers.
+            {error, {badmatch, Error}}
+    end.
 
 %%--------------------------------------------------------------------
 -spec remove_trusted_certs(reference(), db_handle()) -> ok.
@@ -226,6 +244,8 @@ select_cert_by_issuer(Cache, Issuer) ->
 %%
 %% Description: Updates a reference counter in a <Db>.
 %%--------------------------------------------------------------------
+ref_count({extracted, _}, _Db, _N) ->
+    not_cached;
 ref_count(Key, Db, N) ->
     ets:update_counter(Db,Key,N).
 

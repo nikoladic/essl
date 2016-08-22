@@ -1,8 +1,8 @@
 {application, ssl,
    [{description, "Erlang/OTP SSL application"},
-    {vsn, "8.0.1.evan3"},
+    {vsn, "8.0.1.evan4"},
     {modules, [
-	       %% TLS/SSL 
+	       %% TLS/SSL
 	       tls_connection,
 	       tls_handshake,
 	       tls_record,
@@ -15,9 +15,9 @@
 	       dtls_record,
 	       dtls_v1,
 	       %% API
-	       ssl,  %% Main API		  
+	       ssl,  %% Main API
 	       tls,  %% TLS specific
-	       dtls, %% DTLS specific 
+	       dtls, %% DTLS specific
 	       ssl_session_cache_api,
 	       %% Both TLS/SSL and DTLS
 	       ssl_config,
@@ -28,7 +28,7 @@
 	       ssl_srp_primes,
 	       ssl_alert,
 	       ssl_socket,
-	       ssl_listen_tracker_sup,	
+	       ssl_listen_tracker_sup,
 	       %% Erlang Distribution over SSL/TLS
 	       inet_tls_dist,
 	       inet6_tls_dist,
@@ -42,14 +42,14 @@
 	       ssl_certificate,
 	       %% CRL handling
 	       ssl_crl,
-	       ssl_crl_cache, 
+	       ssl_crl_cache,
 	       ssl_crl_cache_api,
 	       ssl_crl_hash_dir,
 	       %% App structure
 	       ssl_app,
 	       ssl_sup,
 	       tls_connection_sup,
-	       dtls_connection_sup	
+	       dtls_connection_sup
 	       ]},
     {registered, [ssl_sup, ssl_manager]},
     {applications, [crypto, public_key, kernel, stdlib]},
@@ -57,5 +57,3 @@
     {mod, {ssl_app, []}},
     {runtime_dependencies, ["stdlib-3.0","public_key-1.2","kernel-3.0",
 			    "erts-7.0","crypto-3.3", "inets-5.10.7"]}]}.
-
-
