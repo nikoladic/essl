@@ -115,13 +115,25 @@ start_link_dist(Opts) ->
 %% Description: Do necessary initializations for a new connection.
 %%--------------------------------------------------------------------
 connection_init({der, _} = Trustedcerts, Role, CRLCache) ->
-    call({connection_init, Trustedcerts, Role, CRLCache});
+    case bypass_pem_cache() of
+	true ->
+	    {ok, Extracted} = ssl_pkix_db:extract_trusted_certs(Trustedcerts),
+	    call({connection_init, Extracted, Role, CRLCache});
+	false ->
+	    call({connection_init, Trustedcerts, Role, CRLCache})
+    end;
 
 connection_init(<<>> = Trustedcerts, Role, CRLCache) ->
     call({connection_init, Trustedcerts, Role, CRLCache});
 
 connection_init(Trustedcerts, Role, CRLCache) ->
-    call({connection_init, Trustedcerts, Role, CRLCache}).
+    case bypass_pem_cache() of
+	true ->
+	    {ok, Extracted} = ssl_pkix_db:extract_trusted_certs(Trustedcerts),
+	    call({connection_init, Extracted, Role, CRLCache});
+	false ->
+	    call({connection_init, Trustedcerts, Role, CRLCache})
+    end.
 
 %%--------------------------------------------------------------------
 -spec cache_pem_file(binary(), term()) -> {ok, term()} | {error, reason()}.
@@ -129,13 +141,18 @@ connection_init(Trustedcerts, Role, CRLCache) ->
 %% Description: Cache a pem file and return its content.
 %%--------------------------------------------------------------------
 cache_pem_file(File, DbHandle) ->
-    case ssl_pkix_db:lookup_cached_pem(DbHandle, File) of
-	[{Content,_}] ->
-	    {ok, Content};
-	[Content] ->
-	    {ok, Content};
-	undefined ->
-	    call({cache_pem, File})
+    case bypass_pem_cache() of
+	true ->
+	    ssl_pkix_db:decode_pem_file(File);
+	false ->
+	    case ssl_pkix_db:lookup_cached_pem(DbHandle, File) of
+		[{Content,_}] ->
+		    {ok, Content};
+		[Content] ->
+		    {ok, Content};
+		undefined ->
+		    call({cache_pem, File})
+	    end
     end.
 
 %%--------------------------------------------------------------------
@@ -506,6 +523,14 @@ delay_time() ->
 	   ?CLEAN_SESSION_DB
     end.
 
+bypass_pem_cache() ->
+    case application:get_env(ssl, bypass_pem_cache) of
+	{ok, Bool} when is_boolean(Bool) ->
+	    Bool;
+	_ ->
+	    false
+    end.
+
 max_session_cache_size(CacheType) ->
     case application:get_env(ssl, CacheType) of
 	{ok, Size} when is_integer(Size) ->
@@ -570,7 +595,7 @@ new_id(Port, Tries, Cache, CacheCb) ->
     end.
 
 clean_cert_db(Ref, CertDb, RefDb, PemCache, File) ->
-    case ssl_pkix_db:ref_count(Ref, RefDb, 0) of
+    try ssl_pkix_db:ref_count(Ref, RefDb, 0) of
 	0 ->	  
 	    case ssl_pkix_db:lookup_cached_pem(PemCache, File) of
 		[{Content, Ref}] ->
@@ -581,6 +606,9 @@ clean_cert_db(Ref, CertDb, RefDb, PemCache, File) ->
 	    ssl_pkix_db:remove(Ref, RefDb),
 	    ssl_pkix_db:remove_trusted_certs(Ref, CertDb);
 	_ ->
+	    ok
+    catch
+	error:badarg -> % cache disabling caused that
 	    ok
     end.
 
